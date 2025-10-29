@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('doc_chunks', function (Blueprint $table) {
             $table->id();
-            $table->uuid('document_id');
+            $table->foreignUuid('document_id');
             $table->text('chunk_text');
             $table->json('embedding_vector')->nullable();
             $table->json('metadata')->nullable();

@@ -51,10 +51,11 @@ class RAGController extends Controller
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $recordsTotal = $this->model->count();
+        $recordsTotal = $this->model->where('user_id', $request->user()->id)->count();
         $length = $request->query('length', 10);
         $start = $request->query('start', 0);
         $products = $this->model
+            ->where('user_id', $request->user()->id)
             ->withCount('chunks')
             ->offset($start)
             ->limit($length)
@@ -73,7 +74,7 @@ class RAGController extends Controller
     }
 
     /**
-     * @OA\Post(
+     * @OA\Get(
      *     path="/api/rag/ask",
      *     summary="Ask a question about a document",
      *     tags={"RAG"},
@@ -103,7 +104,15 @@ class RAGController extends Controller
 
         $queryEmbedding = $this->gemini->embed($query);
 
-        $chunks = DocChunk::where('document_id', $documentId)->whereNotNull('embedding_vector')->get();
+        $document = Document::where('uuid', $documentId)->where('user_id', $request->user()->id)->first();
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Document not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $chunks = DocChunk::where('document_id', $document->uuid)->whereNotNull('embedding_vector')->get();
 
         $ranked = $chunks->map(function ($chunk) use ($queryEmbedding) {
             $score = $this->cosineSimilarity($queryEmbedding, $chunk->embedding_vector ?? []);
@@ -147,6 +156,15 @@ class RAGController extends Controller
         ';
     }
 
+    /**
+     * Compute cosine similarity between two embedding vectors.
+     *
+     * Cosine similarity = (A·B) / (||A|| × ||B||)
+     *  - A·B is the dot product of the two vectors.
+     *  - ||A|| and ||B|| are the Euclidean (L2) norms of each vector.
+     * The result ranges from -1 (opposite) to 1 (identical), with 0 indicating orthogonality.
+     * Here we assume non-negative embeddings, so the range is 0 -> 1.
+     */
     private function cosineSimilarity(array $a, array $b): float {
         $dot = 0; $normA = 0; $normB = 0;
         foreach ($a as $i => $val) {

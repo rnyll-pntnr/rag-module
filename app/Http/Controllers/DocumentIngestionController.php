@@ -49,35 +49,148 @@ class DocumentIngestionController extends Controller
      * )
      */
     public function upload(RAGUploadRequest $request) {
-        $file = $request->file('file');
-        $name = $file->getClientOriginalName();
+        try {
+            $file = $request->file('file');
+            $name = $file->getClientOriginalName();
 
-        $document = Document::create([
-            'name' => $name,
-            'type' => $file->getClientOriginalExtension(),
-        ]);
-
-        $text = $this->extractText($file->getPathname(), $file->getMimeType());
-
-        $chunks = $this->chunkText($text, 500);
-
-        foreach ($chunks as $chunk) {
-            $embedding = $this->gemini->embed($chunk);
-
-            DocChunk::create([
-                'document_id' => $document->uuid,
-                'chunk_text' => $chunk,
-                'embedding_vector' => $embedding ?? null,
-                'metadata' => ['source' => $name],
+            $document = Document::create([
+                'user_id' => $request->user()->id,
+                'name' => $name,
+                'type' => $file->getClientOriginalExtension(),
             ]);
+
+            $text = $this->extractText($file->getPathname(), $file->getMimeType());
+
+            $chunks = $this->chunkText($text, 500);
+
+            foreach ($chunks as $chunk) {
+                $embedding = $this->gemini->embed($chunk);
+
+                $document->chunks()->create([
+                    'chunk_text' => $chunk,
+                    'embedding_vector' => $embedding ?? null,
+                    'metadata' => ['source' => $name],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully',
+                'document_id' => $document->uuid,
+                'chunks_stored' => count($chunks)
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/document/{id}/update",
+     *     summary="Update a document",
+     *     tags={"RAG"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"file"},
+     *                 @OA\Property(property="file", type="string", format="binary", description="Document file to upload")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Document updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="File updated successfully"),
+     *             @OA\Property(property="document_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *             @OA\Property(property="chunks_stored", type="integer", example=10)
+     *         )
+     *     )
+     * )
+     */
+    public function update(RAGUploadRequest $request, $id) {
+        try {
+            $document = Document::find($id);
+            if (!$document) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Document not found',
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            $file = $request->file('file');
+            $name = $file->getClientOriginalName();
+
+            $text = $this->extractText($file->getPathname(), $file->getMimeType());
+
+            $chunks = $this->chunkText($text, 500);
+            $document->name = $name;
+            $document->type = $file->getClientOriginalExtension();
+            $document->chunks()->delete();
+
+            foreach ($chunks as $chunk) {
+                $embedding = $this->gemini->embed($chunk);
+
+                $document->chunks()->create([
+                    'chunk_text' => $chunk,
+                    'embedding_vector' => $embedding ?? null,
+                    'metadata' => ['source' => $name],
+                ]);
+            }
+
+            $document->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File updated successfully',
+                'document_id' => $document->uuid,
+                'chunks_stored' => count($chunks)
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/document/{id}",
+     *     summary="Delete a document",
+     *     tags={"RAG"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Document ID",
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(
+     *         response=204,
+     *         description="Document deleted successfully"
+     *     )
+     * )
+     */
+    public function destroy($id) {
+        $document = Document::find($id);
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Document not found',
+            ], Response::HTTP_NOT_FOUND);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'File uploaded successfully',
-            'document_id' => $document->uuid,
-            'chunks_stored' => count($chunks)
-        ], Response::HTTP_OK);
+        $document->chunks()->delete();
+        $document->delete();
+
+        return response()->json([], Response::NO_CONTENT);
     }
 
     private function extractText(string $path, string $type): string {

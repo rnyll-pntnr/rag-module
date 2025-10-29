@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->uuid()->primary();
+            $table->foreignUuid('user_id');
             $table->string('name');
             $table->text('type')->nullable();
             $table->timestamps();

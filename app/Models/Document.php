@@ -28,9 +28,15 @@ class Document extends Model
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['id', 'name', 'type'];
+    protected $fillable = ['id', 'user_id', 'name', 'type'];
+
+    protected $hidden = ['user_id'];
 
     public function chunks() {
         return $this->hasMany(DocChunk::class, 'document_id', 'uuid');
+    }
+
+    public function user() {
+        return $this->belongsTo(\App\Models\User::class);
     }
 }

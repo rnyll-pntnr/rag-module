@@ -27,6 +27,7 @@ class GeminiService {
             try {
                 $response = $this->client->request("POST",'models/gemini-embedding-001:embedContent', [
                     'json' => [
+                        'task_type' => "RETRIEVAL_QUERY",
                         'content' => [
                             'parts' => [
                                 [
@@ -37,7 +38,9 @@ class GeminiService {
                     ]
                 ]);
 
+
                 $data = json_decode($response->getBody()->getContents(), true);
+
                 return $data['embedding']['values'] ?? [];
             } catch (\GuzzleHttp\Exception\RequestException $e) {
                 $errorResponse = $e->getResponse();

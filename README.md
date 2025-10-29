@@ -14,111 +14,32 @@ This module allows you to:
 
 ### Requirements
 
-- PHP 8.1+
-- Laravel 10.x+
+- PHP 8.2+
+- Laravel 12.x+
 - Google Gemini API key
 
 ### Steps
 
-1. Add the module to your Laravel project:
+1. Add the module to your Laravel project clone this repository to `Modules/RAG` directory:
 
 ```bash
-composer require ranyll/rag-module
+git clone https://github.com/rnyll-pntnr/rag-module
 ```
 
-2. Publish the configuration:
-
-```bash
-php artisan vendor:publish --tag=rag-config
-```
-
-3. Run migrations:
+2. Run migrations:
 
 ```bash
 php artisan migrate
 ```
 
-4. Add your Gemini API key to your `.env` file:
+3. Add your Gemini API key to your `.env` file:
 
 ```
 GEMINI_API_KEY=your_api_key_here
 ```
 
 ## Usage
-
-### API Endpoints
-
-The module provides the following API endpoints:
-
-#### Document Upload
-
-```
-POST /api/rag/upload
-```
-
-Upload and process documents for RAG. Supports PDF, DOCX, and TXT files.
-
-**Request:**
-- Form data with `file` parameter containing the document
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Document uploaded and processed successfully",
-  "document_id": 123
-}
-```
-
-#### Ask Questions
-
-```
-POST /api/rag/ask
-```
-
-Ask questions about your documents using RAG.
-
-**Request:**
-```json
-{
-  "question": "What is the main topic of the document?"
-}
-```
-
-**Response:**
-```json
-{
-  "answer": "The document primarily discusses...",
-  "sources": [
-    {
-      "document_id": 123,
-      "document_name": "example.pdf",
-      "chunk_id": 456
-    }
-  ]
-}
-```
-
-#### List Documents
-
-```
-GET /api/document
-```
-
-Retrieve a list of all uploaded documents.
-
-**Response:**
-```json
-{
-  "documents": [
-    {
-      "id": 123,
-      "name": "example.pdf",
-      "created_at": "2023-10-15T14:30:00Z"
-    }
-  ]
-}
-```
+The API usage can be found on the controller documentation and the API documentation from `http:localhost:8000/api/document` created using `darkaonline/l5-swagger`.
 
 ## License
 

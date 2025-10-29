@@ -1,0 +1,34 @@
+{
+    "name": "ranyll-p/rag",
+    "description": "",
+    "authors": [
+        {
+            "name": "Ranyll Puntanar",
+            "email": "ranyllpuntanar@ranyll.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\RAG\\": "app/",
+            "Modules\\RAG\\Database\\Factories\\": "database/factories/",
+            "Modules\\RAG\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\RAG\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "smalot/pdfparser": "^2.12",
+        "phpoffice/phpword": "^1.4"
+    }
+}
